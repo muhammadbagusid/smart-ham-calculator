@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>SMART-HAM Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>SMART-HAM</h1>
+    <p class="subtitle">Smart High Alert Medication Calculator</p>
+
+    <div class="form-group">
+        <label>Berat Badan Pasien (kg)</label>
+        <input type="number" id="weight" placeholder="Contoh: 60">
+    </div>
+
+    <div class="form-group">
+        <label>Dosis (mcg/kgBB/menit)</label>
+        <input type="number" id="dose" placeholder="Contoh: 0.1">
+    </div>
+
+    <div class="form-group">
+        <label>Konsentrasi Obat (mg dalam total ml)</label>
+        <input type="number" id="mg" placeholder="mg (misal 4)">
+        <input type="number" id="ml" placeholder="ml (misal 50)">
+    </div>
+
+    <button onclick="calculateDose()">Hitung</button>
+
+    <div class="result" id="result"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
