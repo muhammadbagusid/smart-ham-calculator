@@ -2,24 +2,27 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>SMART-HAM Professional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMART-HAM | RSUP Dr. Hasan Sadikin</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="app">
-    <header>
+<header>
+    <div class="branding">
         <h1>SMART-HAM</h1>
         <p>Smart High Alert Medication Calculator</p>
-    </header>
+        <small>RSUP Dr. Hasan Sadikin Bandung</small>
+    </div>
+</header>
+
+<div class="container">
 
     <div class="card">
+        <h3>Input Klinis</h3>
 
         <label>Mode Pasien</label>
-        <select id="mode">
-            <option value="adult">Dewasa</option>
-            <option value="pediatric">Pediatrik</option>
-        </select>
+        <select id="mode"></select>
 
         <label>Pilih Obat</label>
         <select id="drug"></select>
@@ -36,14 +39,21 @@
         <input type="number" id="mg" placeholder="mg">
         <input type="number" id="ml" placeholder="ml">
 
-        <button onclick="calculateDose()">Hitung Dosis</button>
+        <button onclick="calculateDose()">Hitung</button>
 
         <div id="result" class="result"></div>
-
     </div>
 
-    <div class="log-card">
+    <div class="card">
+        <h3>Dashboard Analitik</h3>
+        <p>Total Perhitungan: <span id="totalCalc">0</span></p>
+        <p>Obat Terbanyak Digunakan: <span id="mostUsed">-</span></p>
+        <p>Kasus Di Luar Rentang Aman: <span id="unsafeCount">0</span></p>
+    </div>
+
+    <div class="card">
         <h3>Log Perhitungan</h3>
+        <button onclick="exportCSV()">Export ke Excel</button>
         <ul id="logList"></ul>
     </div>
 
@@ -52,4 +62,3 @@
 <script src="script.js"></script>
 </body>
 </html>
-
