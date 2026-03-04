@@ -1,62 +1,54 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>SMART-HAM Pro</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>SMART-HAM Professional</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="login-container" id="loginPage">
-    <h2>SMART-HAM Login</h2>
-    <input type="text" id="bagus" placeholder="Nama Perawat">
-    <button onclick="login()">Masuk</button>
-</div>
-
-<div class="app-container" id="appPage" style="display:none;">
+<div class="app">
     <header>
-        <h1>SMART-HAM Pro</h1>
-        <p id="userDisplay"></p>
+        <h1>SMART-HAM</h1>
+        <p>Smart High Alert Medication Calculator</p>
     </header>
 
-    <div class="form-section">
-        <label>Mode</label>
+    <div class="card">
+
+        <label>Mode Pasien</label>
         <select id="mode">
             <option value="adult">Dewasa</option>
             <option value="pediatric">Pediatrik</option>
         </select>
 
         <label>Pilih Obat</label>
-        <select id="drug" onchange="updateDoseRange()">
-            <option value="norepi">Norepinephrine</option>
-            <option value="dopamine">Dopamine</option>
-            <option value="insulin">Insulin</option>
-        </select>
+        <select id="drug"></select>
 
-        <p id="doseRange"></p>
+        <div id="safeRange" class="safe-range"></div>
 
         <label>Berat Badan (kg)</label>
         <input type="number" id="weight">
 
-        <label>Dosis (mcg/kgBB/menit atau unit/kg/jam)</label>
+        <label>Dosis (mcg/kgBB/menit)</label>
         <input type="number" id="dose">
 
-        <label>Konsentrasi (mg dalam ml)</label>
+        <label>Konsentrasi (mg dalam total ml)</label>
         <input type="number" id="mg" placeholder="mg">
         <input type="number" id="ml" placeholder="ml">
 
-        <button onclick="calculate()">Hitung</button>
+        <button onclick="calculateDose()">Hitung Dosis</button>
+
+        <div id="result" class="result"></div>
+
     </div>
 
-    <div class="result" id="result"></div>
-
-    <div class="log-section">
+    <div class="log-card">
         <h3>Log Perhitungan</h3>
         <ul id="logList"></ul>
     </div>
+
 </div>
 
 <script src="script.js"></script>
 </body>
 </html>
-
