@@ -11,9 +11,19 @@ const drugs = {
     }
 };
 
-const drugSelect = document.getElementById("drug");
+let logs = [];
+let totalCalc = 0;
+let unsafeCount = 0;
+let drugUsage = {};
+
 const modeSelect = document.getElementById("mode");
+const drugSelect = document.getElementById("drug");
 const safeRange = document.getElementById("safeRange");
+
+modeSelect.innerHTML = `
+<option value="adult">Dewasa</option>
+<option value="pediatric">Pediatrik</option>
+`;
 
 function loadDrugs() {
     drugSelect.innerHTML = "";
@@ -31,13 +41,12 @@ function updateSafeRange() {
     let mode = modeSelect.value;
     let drug = drugSelect.value;
     let data = drugs[mode][drug];
-    safeRange.innerHTML = 
+    safeRange.innerHTML =
         "Rentang aman: " + data.min + " - " + data.max + " mcg/kgBB/menit";
 }
 
 modeSelect.addEventListener("change", loadDrugs);
 drugSelect.addEventListener("change", updateSafeRange);
-
 loadDrugs();
 
 function calculateDose() {
@@ -52,29 +61,65 @@ function calculateDose() {
     }
 
     let mode = modeSelect.value;
-    let drug = drugSelect.value;
-    let data = drugs[mode][drug];
+    let drugKey = drugSelect.value;
+    let drug = drugs[mode][drugKey];
 
     let mcg_per_min = weight * dose;
     let total_mcg = mg * 1000;
     let concentration = total_mcg / ml;
     let ml_per_hour = (mcg_per_min / concentration) * 60;
 
-    let alert = "";
-    if (dose < data.min || dose > data.max) {
-        alert = "<span style='color:red'> ⚠ Di luar rentang aman!</span>";
-    }
+    let unsafe = dose < drug.min || dose > drug.max;
+    if (unsafe) unsafeCount++;
+
+    totalCalc++;
+    drugUsage[drug.name] = (drugUsage[drug.name] || 0) + 1;
 
     document.getElementById("result").innerHTML =
-        "Kecepatan Infus: " + ml_per_hour.toFixed(2) + " ml/jam" + alert;
+        "Kecepatan Infus: " + ml_per_hour.toFixed(2) +
+        " ml/jam" + (unsafe ? " ⚠ Di luar rentang aman!" : "");
 
-    addLog(data.name, dose, ml_per_hour);
+    logs.push({
+        drug: drug.name,
+        dose: dose,
+        result: ml_per_hour.toFixed(2),
+        unsafe: unsafe
+    });
+
+    updateDashboard();
+    renderLog();
 }
 
-function addLog(drugName, dose, result) {
+function updateDashboard() {
+    document.getElementById("totalCalc").innerText = totalCalc;
+    document.getElementById("unsafeCount").innerText = unsafeCount;
+
+    let mostUsed = Object.keys(drugUsage).reduce((a, b) =>
+        drugUsage[a] > drugUsage[b] ? a : b, "-");
+
+    document.getElementById("mostUsed").innerText = mostUsed;
+}
+
+function renderLog() {
     let logList = document.getElementById("logList");
-    let li = document.createElement("li");
-    li.innerHTML = drugName + " | Dosis: " + dose +
-        " → " + result.toFixed(2) + " ml/jam";
-    logList.prepend(li);
+    logList.innerHTML = "";
+    logs.forEach(log => {
+        let li = document.createElement("li");
+        li.innerHTML = `${log.drug} | ${log.dose} → ${log.result} ml/jam`;
+        logList.prepend(li);
+    });
+}
+
+function exportCSV() {
+    let csv = "Drug,Dose,Result(ml/jam),Unsafe\n";
+    logs.forEach(log => {
+        csv += `${log.drug},${log.dose},${log.result},${log.unsafe}\n`;
+    });
+
+    let blob = new Blob([csv], { type: "text/csv" });
+    let url = window.URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "SMART-HAM-Log.csv";
+    a.click();
 }
