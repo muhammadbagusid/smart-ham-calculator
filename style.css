@@ -4,26 +4,25 @@ body {
     background: #f4f6f9;
 }
 
-.app {
-    max-width: 600px;
-    margin: auto;
-    padding: 20px;
-}
-
 header {
     background: #0f2d5a;
     color: white;
     padding: 20px;
-    border-radius: 10px;
     text-align: center;
 }
 
-.card, .log-card {
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 15px;
+}
+
+.card {
     background: white;
     padding: 20px;
     margin-top: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
 }
 
 label {
@@ -39,9 +38,9 @@ input, select {
 }
 
 button {
-    width: 100%;
     margin-top: 15px;
     padding: 10px;
+    width: 100%;
     background: #0f2d5a;
     color: white;
     border: none;
@@ -59,11 +58,12 @@ button:hover {
 }
 
 .safe-range {
-    margin-top: 5px;
     font-size: 13px;
     color: #555;
 }
 
-.log-card ul {
-    padding-left: 20px;
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
 }
