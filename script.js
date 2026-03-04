@@ -1,63 +1,80 @@
-let currentUser = "";
-
-const doseLimits = {
-    norepi: { adult: [0.05, 1], pediatric: [0.05, 2] },
-    dopamine: { adult: [2, 20], pediatric: [2, 20] },
-    insulin: { adult: [0.05, 0.1], pediatric: [0.05, 0.1] }
+const drugs = {
+    adult: {
+        norepi: { name: "Norepinephrine", min: 0.05, max: 1 },
+        dopamine: { name: "Dopamine", min: 2, max: 20 },
+        insulin: { name: "Insulin Infusion", min: 0.05, max: 0.1 }
+    },
+    pediatric: {
+        norepi: { name: "Norepinephrine", min: 0.05, max: 0.5 },
+        dopamine: { name: "Dopamine", min: 5, max: 15 },
+        insulin: { name: "Insulin Infusion", min: 0.02, max: 0.1 }
+    }
 };
 
-function login() {
-    let name = document.getElementById("nurseName").value;
-    if (!name) return alert("Masukkan nama perawat!");
-    currentUser = name;
-    document.getElementById("loginPage").style.display = "none";
-    document.getElementById("appPage").style.display = "block";
-    document.getElementById("userDisplay").innerText = "Login sebagai: " + name;
+const drugSelect = document.getElementById("drug");
+const modeSelect = document.getElementById("mode");
+const safeRange = document.getElementById("safeRange");
+
+function loadDrugs() {
+    drugSelect.innerHTML = "";
+    let mode = modeSelect.value;
+    for (let key in drugs[mode]) {
+        let option = document.createElement("option");
+        option.value = key;
+        option.text = drugs[mode][key].name;
+        drugSelect.appendChild(option);
+    }
+    updateSafeRange();
 }
 
-function updateDoseRange() {
-    let drug = document.getElementById("drug").value;
-    let mode = document.getElementById("mode").value;
-    let range = doseLimits[drug][mode];
-    document.getElementById("doseRange").innerText =
-        "Rentang dosis aman: " + range[0] + " - " + range[1];
+function updateSafeRange() {
+    let mode = modeSelect.value;
+    let drug = drugSelect.value;
+    let data = drugs[mode][drug];
+    safeRange.innerHTML = 
+        "Rentang aman: " + data.min + " - " + data.max + " mcg/kgBB/menit";
 }
 
-function calculate() {
-    let drug = document.getElementById("drug").value;
-    let mode = document.getElementById("mode").value;
+modeSelect.addEventListener("change", loadDrugs);
+drugSelect.addEventListener("change", updateSafeRange);
+
+loadDrugs();
+
+function calculateDose() {
     let weight = parseFloat(document.getElementById("weight").value);
     let dose = parseFloat(document.getElementById("dose").value);
     let mg = parseFloat(document.getElementById("mg").value);
     let ml = parseFloat(document.getElementById("ml").value);
 
     if (!weight || !dose || !mg || !ml) {
-        alert("Lengkapi semua data!");
+        document.getElementById("result").innerHTML = "Lengkapi semua data!";
         return;
     }
+
+    let mode = modeSelect.value;
+    let drug = drugSelect.value;
+    let data = drugs[mode][drug];
 
     let mcg_per_min = weight * dose;
     let total_mcg = mg * 1000;
     let concentration = total_mcg / ml;
     let ml_per_hour = (mcg_per_min / concentration) * 60;
 
-    let range = doseLimits[drug][mode];
-    let alertText = "";
-
-    if (dose < range[0] || dose > range[1]) {
-        alertText = "⚠ Dosis di luar rentang aman!";
-    } else {
-        alertText = "✓ Dosis dalam rentang aman.";
+    let alert = "";
+    if (dose < data.min || dose > data.max) {
+        alert = "<span style='color:red'> ⚠ Di luar rentang aman!</span>";
     }
 
     document.getElementById("result").innerHTML =
-        "Kecepatan: " + ml_per_hour.toFixed(2) + " ml/jam <br>" + alertText;
+        "Kecepatan Infus: " + ml_per_hour.toFixed(2) + " ml/jam" + alert;
 
-    let logItem = document.createElement("li");
-    logItem.textContent = currentUser + 
-        " | " + drug + 
-        " | " + ml_per_hour.toFixed(2) + " ml/jam";
-    document.getElementById("logList").appendChild(logItem);
+    addLog(data.name, dose, ml_per_hour);
 }
 
-updateDoseRange();
+function addLog(drugName, dose, result) {
+    let logList = document.getElementById("logList");
+    let li = document.createElement("li");
+    li.innerHTML = drugName + " | Dosis: " + dose +
+        " → " + result.toFixed(2) + " ml/jam";
+    logList.prepend(li);
+}
