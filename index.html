@@ -96,6 +96,7 @@ button {
 <input type="number" id="ml" placeholder="ml">
 
 <button onclick="calculateDose()">Hitung</button>
+<button onclick="downloadPDF()">Download PDF</button>
 
 <div id="result" class="result"></div>
 </div>
@@ -114,6 +115,8 @@ button {
 </div>
 
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 const drugs = {
@@ -151,8 +154,8 @@ function updateInfo(){
 drugSelect.addEventListener("change",updateInfo);
 
 function calculateDose(){
-    let w=parseFloat(weight.value);
-    let dose=parseFloat(doseInput.value||dose.value);
+    let w=parseFloat(document.getElementById("weight").value);
+    let dose=parseFloat(document.getElementById("dose").value);
     let mg=parseFloat(document.getElementById("mg").value);
     let ml=parseFloat(document.getElementById("ml").value);
 
@@ -197,17 +200,18 @@ function calculateDose(){
 }
 
 function updateDash(){
-    totalCalcSpan.textContent=totalCalc;
-    unsafeCountSpan.textContent=unsafeCount;
+    document.getElementById("totalCalc").textContent=totalCalc;
+    document.getElementById("unsafeCount").textContent=unsafeCount;
 
     let max="-",val=0;
     for(let k in usage){
         if(usage[k]>val){val=usage[k];max=k;}
     }
-    mostUsedSpan.textContent=max;
+    document.getElementById("mostUsed").textContent=max;
 }
 
 function renderLog(){
+    let logList=document.getElementById("logList");
     logList.innerHTML="";
     logs.forEach(l=>{
         let li=document.createElement("li");
@@ -223,8 +227,43 @@ function exportCSV(){
     let blob=new Blob([csv]);
     let a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
-    a.download="SMARTHAM.csv";
+    a.download="SMART-HAM.csv";
     a.click();
+}
+
+function downloadPDF(){
+    const { jsPDF } = window.jspdf;
+    let doc = new jsPDF();
+
+    let d=drugs[drugSelect.value];
+    let w=document.getElementById("weight").value;
+    let dose=document.getElementById("dose").value;
+    let resultText=document.getElementById("result").innerText;
+
+    let date=new Date().toLocaleString();
+
+    doc.setFontSize(16);
+    doc.text("SMART-HAM",20,20);
+    doc.setFontSize(10);
+    doc.text("RSUP Dr. Hasan Sadikin Bandung",20,26);
+
+    doc.setFontSize(12);
+    doc.text("Lembar Perhitungan High Alert Medication",20,40);
+
+    doc.setFontSize(10);
+    doc.text("Tanggal: "+date,20,50);
+    doc.text("Obat: "+d.name,20,60);
+    doc.text("Indikasi: "+d.note,20,70);
+    doc.text("Berat Badan: "+w+" kg",20,80);
+    doc.text("Dosis: "+dose+" "+d.unit,20,90);
+
+    doc.text("Hasil:",20,110);
+    doc.text(resultText,20,120);
+
+    doc.setFontSize(9);
+    doc.text("Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,140);
+
+    doc.save("SMART-HAM.pdf");
 }
 
 loadDrugs();
