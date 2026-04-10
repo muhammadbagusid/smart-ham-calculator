@@ -1,234 +1,125 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMART-HAM RSHS</title>
-
-<style>
-body {
-    margin:0;
-    font-family:'Segoe UI',sans-serif;
-    background:#f4f6f9;
-}
-header {
-    background:#0f2d5a;
-    color:white;
-    padding:20px;
-    text-align:center;
-}
-.container {
-    max-width:900px;
-    margin:auto;
-    padding:15px;
-}
-.card {
-    background:white;
-    padding:20px;
-    margin-top:20px;
-    border-radius:12px;
-    box-shadow:0 4px 15px rgba(0,0,0,0.08);
-}
-label {
-    display:block;
-    margin-top:10px;
-    font-weight:600;
-}
-input, select {
-    width:100%;
-    padding:8px;
-    margin-top:5px;
-}
-button {
-    margin-top:15px;
-    padding:10px;
-    width:100%;
-    background:#0f2d5a;
-    color:white;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-}
-.result {
-    margin-top:15px;
-    font-weight:bold;
-}
-.safe-range {
-    font-size:13px;
-}
-.drug-info {
-    background:#eef3ff;
-    padding:10px;
-    border-radius:8px;
-    margin-top:10px;
-    font-size:13px;
-}
-</style>
-</head>
-
-<body>
-
-<header>
-<h1>SMART-HAM</h1>
-<p>High Alert Medication Calculator</p>
-<small>RSUP Dr. Hasan Sadikin Bandung</small>
-</header>
-
-<div class="container">
-
-<div class="card">
-<h3>Input Klinis</h3>
-
-<label>Pilih Obat</label>
-<select id="drug"></select>
-
-<div id="safeRange" class="safe-range"></div>
-<div id="drugInfo" class="drug-info"></div>
-
-<label>Berat Badan (kg)</label>
-<input type="number" id="weight">
-
-<label>Dosis</label>
-<input type="number" id="dose">
-
-<label>Konsentrasi (mg dalam ml) - khusus infus</label>
-<input type="number" id="mg" placeholder="mg">
-<input type="number" id="ml" placeholder="ml">
-
-<button onclick="calculateDose()">Hitung</button>
-
-<div id="result" class="result"></div>
-</div>
-
-<div class="card">
-<h3>Dashboard</h3>
-<p>Total Perhitungan: <span id="totalCalc">0</span></p>
-<p>Obat Terbanyak: <span id="mostUsed">-</span></p>
-<p>Kasus Tidak Aman: <span id="unsafeCount">0</span></p>
-</div>
-
-<div class="card">
-<h3>Log</h3>
-<button onclick="exportCSV()">Export Excel</button>
-<ul id="logList"></ul>
-</div>
-
-</div>
-
-<script>
 const drugs = {
-    adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Syok, anafilaksis"},
-    nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min",note:"Hipertensi emergensi"},
-    dobutamine:{name:"Dobutamine",min:2,max:20,unit:"mcg/kg/min",note:"Syok kardiogenik"},
-    fentanyl:{name:"Fentanyl",min:1,max:1.5,unit:"mcg/kg",note:"Analgesi"},
-    norepi:{name:"Norepinephrine",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Syok septik"},
-    midazolam:{name:"Midazolam",min:0.05,max:0.1,unit:"mg/kg",note:"Sedasi"},
-    heparin:{name:"Heparin",min:10,max:20,unit:"unit/kg/hour",note:"Antikoagulan"}
+    adult: {
+        norepi: { name: "Norepinephrine", min: 0.05, max: 1 },
+        dopamine: { name: "Dopamine", min: 2, max: 20 },
+        insulin: { name: "Insulin Infusion", min: 0.05, max: 0.1 }
+    },
+    pediatric: {
+        norepi: { name: "Norepinephrine", min: 0.05, max: 0.5 },
+        dopamine: { name: "Dopamine", min: 5, max: 15 },
+        insulin: { name: "Insulin Infusion", min: 0.02, max: 0.1 }
+    }
 };
 
-let logs=[], totalCalc=0, unsafeCount=0, usage={};
+let logs = [];
+let totalCalc = 0;
+let unsafeCount = 0;
+let drugUsage = {};
 
-const drugSelect=document.getElementById("drug");
+const modeSelect = document.getElementById("mode");
+const drugSelect = document.getElementById("drug");
+const safeRange = document.getElementById("safeRange");
 
-function loadDrugs(){
-    for(let k in drugs){
-        let opt=document.createElement("option");
-        opt.value=k;
-        opt.text=drugs[k].name;
-        drugSelect.appendChild(opt);
+modeSelect.innerHTML = `
+<option value="adult">Dewasa</option>
+<option value="pediatric">Pediatrik</option>
+`;
+
+function loadDrugs() {
+    drugSelect.innerHTML = "";
+    let mode = modeSelect.value;
+    for (let key in drugs[mode]) {
+        let option = document.createElement("option");
+        option.value = key;
+        option.text = drugs[mode][key].name;
+        drugSelect.appendChild(option);
     }
-    updateInfo();
+    updateSafeRange();
 }
 
-function updateInfo(){
-    let d=drugs[drugSelect.value];
-    document.getElementById("safeRange").innerHTML=
-        `Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
-    document.getElementById("drugInfo").innerHTML=
-        `<b>Catatan:</b> ${d.note}`;
+function updateSafeRange() {
+    let mode = modeSelect.value;
+    let drug = drugSelect.value;
+    let data = drugs[mode][drug];
+    safeRange.innerHTML =
+        "Rentang aman: " + data.min + " - " + data.max + " mcg/kgBB/menit";
 }
 
-drugSelect.addEventListener("change",updateInfo);
+modeSelect.addEventListener("change", loadDrugs);
+drugSelect.addEventListener("change", updateSafeRange);
+loadDrugs();
 
-function calculateDose(){
-    let w=parseFloat(weight.value);
-    let dose=parseFloat(doseInput.value||dose.value);
-    let mg=parseFloat(document.getElementById("mg").value);
-    let ml=parseFloat(document.getElementById("ml").value);
+function calculateDose() {
+    let weight = parseFloat(document.getElementById("weight").value);
+    let dose = parseFloat(document.getElementById("dose").value);
+    let mg = parseFloat(document.getElementById("mg").value);
+    let ml = parseFloat(document.getElementById("ml").value);
 
-    let d=drugs[drugSelect.value];
-
-    if(!w||!dose){
-        result.innerHTML="Lengkapi data!";
+    if (!weight || !dose || !mg || !ml) {
+        document.getElementById("result").innerHTML = "Lengkapi semua data!";
         return;
     }
 
-    let unsafe = dose<d.min || dose>d.max;
-    if(unsafe) unsafeCount++;
+    let mode = modeSelect.value;
+    let drugKey = drugSelect.value;
+    let drug = drugs[mode][drugKey];
 
-    let res="";
+    let mcg_per_min = weight * dose;
+    let total_mcg = mg * 1000;
+    let concentration = total_mcg / ml;
+    let ml_per_hour = (mcg_per_min / concentration) * 60;
 
-    if(d.unit.includes("mcg/kg/min")){
-        if(!mg||!ml){
-            result.innerHTML="Isi konsentrasi!";
-            return;
-        }
-        let mlh=((w*dose)/(mg*1000/ml))*60;
-        res=mlh.toFixed(2)+" ml/jam";
-    }
-    else if(d.unit.includes("mcg/kg")){
-        res=(w*dose).toFixed(2)+" mcg";
-    }
-    else if(d.unit.includes("mg/kg")){
-        res=(w*dose).toFixed(2)+" mg";
-    }
-    else if(d.unit.includes("unit/kg")){
-        res=(w*dose).toFixed(2)+" unit/jam";
-    }
+    let unsafe = dose < drug.min || dose > drug.max;
+    if (unsafe) unsafeCount++;
 
-    result.innerHTML="Hasil: "+res+(unsafe?" ⚠ Tidak Aman":" ✅ Aman");
-
-    logs.push(`${d.name} | ${dose} → ${res}`);
     totalCalc++;
-    usage[d.name]=(usage[d.name]||0)+1;
+    drugUsage[drug.name] = (drugUsage[drug.name] || 0) + 1;
 
-    updateDash();
+    document.getElementById("result").innerHTML =
+        "Kecepatan Infus: " + ml_per_hour.toFixed(2) +
+        " ml/jam" + (unsafe ? " ⚠ Di luar rentang aman!" : "");
+
+    logs.push({
+        drug: drug.name,
+        dose: dose,
+        result: ml_per_hour.toFixed(2),
+        unsafe: unsafe
+    });
+
+    updateDashboard();
     renderLog();
 }
 
-function updateDash(){
-    totalCalcSpan.textContent=totalCalc;
-    unsafeCountSpan.textContent=unsafeCount;
+function updateDashboard() {
+    document.getElementById("totalCalc").innerText = totalCalc;
+    document.getElementById("unsafeCount").innerText = unsafeCount;
 
-    let max="-",val=0;
-    for(let k in usage){
-        if(usage[k]>val){val=usage[k];max=k;}
-    }
-    mostUsedSpan.textContent=max;
+    let mostUsed = Object.keys(drugUsage).reduce((a, b) =>
+        drugUsage[a] > drugUsage[b] ? a : b, "-");
+
+    document.getElementById("mostUsed").innerText = mostUsed;
 }
 
-function renderLog(){
-    logList.innerHTML="";
-    logs.forEach(l=>{
-        let li=document.createElement("li");
-        li.textContent=l;
+function renderLog() {
+    let logList = document.getElementById("logList");
+    logList.innerHTML = "";
+    logs.forEach(log => {
+        let li = document.createElement("li");
+        li.innerHTML = `${log.drug} | ${log.dose} → ${log.result} ml/jam`;
         logList.prepend(li);
     });
 }
 
-function exportCSV(){
-    let csv="Data\n";
-    logs.forEach(l=>csv+=l+"\n");
+function exportCSV() {
+    let csv = "Drug,Dose,Result(ml/jam),Unsafe\n";
+    logs.forEach(log => {
+        csv += `${log.drug},${log.dose},${log.result},${log.unsafe}\n`;
+    });
 
-    let blob=new Blob([csv]);
-    let a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download="SMARTHAM.csv";
+    let blob = new Blob([csv], { type: "text/csv" });
+    let url = window.URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "SMART-HAM-Log.csv";
     a.click();
 }
-
-loadDrugs();
-</script>
-
-</body>
-</html>
