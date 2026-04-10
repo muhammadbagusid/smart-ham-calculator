@@ -9,10 +9,13 @@
 body {margin:0;font-family:'Segoe UI';background:#f4f6f9;}
 header {background:#0f2d5a;color:white;padding:20px;text-align:center;}
 .container {max-width:900px;margin:auto;padding:15px;}
-.card {background:white;padding:20px;margin-top:20px;border-radius:12px;}
+.card {background:white;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.08);}
+label {display:block;margin-top:10px;font-weight:600;}
 input,select,button {width:100%;padding:8px;margin-top:5px;}
 button {background:#0f2d5a;color:white;border:none;border-radius:8px;}
 .result {margin-top:10px;font-weight:bold;}
+.safe-range {font-size:13px;}
+.drug-info {background:#eef3ff;padding:10px;border-radius:8px;margin-top:10px;font-size:13px;}
 </style>
 </head>
 
@@ -20,39 +23,61 @@ button {background:#0f2d5a;color:white;border:none;border-radius:8px;}
 
 <header>
 <h1>SMART-HAM</h1>
-<p>RSUP Dr. Hasan Sadikin Bandung</p>
+<p>High Alert Medication Calculator</p>
+<small>RSUP Dr. Hasan Sadikin Bandung</small>
 </header>
 
 <div class="container">
+
 <div class="card">
+<h3>Input Klinis</h3>
 
 <select id="drug"></select>
 
-<input type="number" id="weight" placeholder="BB (kg)">
+<div id="safeRange" class="safe-range"></div>
+<div id="drugInfo" class="drug-info"></div>
+
+<input type="number" id="weight" placeholder="Berat Badan (kg)">
 <input type="number" id="dose" placeholder="Dosis">
-<input type="number" id="mg" placeholder="mg">
-<input type="number" id="ml" placeholder="ml">
+
+<input type="number" id="mg" placeholder="mg (untuk infus)">
+<input type="number" id="ml" placeholder="ml (untuk infus)">
 
 <button onclick="calculateDose()">Hitung</button>
 <button onclick="downloadPDF()">Download PDF</button>
 
 <div id="result" class="result"></div>
-
 </div>
+
+<div class="card">
+<h3>Dashboard</h3>
+<p>Total: <span id="totalCalc">0</span></p>
+<p>Terbanyak: <span id="mostUsed">-</span></p>
+<p>Tidak Aman: <span id="unsafeCount">0</span></p>
+</div>
+
+<div class="card">
+<h3>Log</h3>
+<button onclick="exportCSV()">Export Excel</button>
+<ul id="logList"></ul>
+</div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 const drugs={
-adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min"},
-nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min"},
-dobutamine:{name:"Dobutamine",min:2,max:20,unit:"mcg/kg/min"},
-fentanyl:{name:"Fentanyl",min:1,max:1.5,unit:"mcg/kg"},
-norepi:{name:"Norepinephrine",min:0.01,max:0.3,unit:"mcg/kg/min"},
-midazolam:{name:"Midazolam",min:0.05,max:0.1,unit:"mg/kg"},
-heparin:{name:"Heparin",min:10,max:20,unit:"unit/kg/hour"}
+adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Syok, anafilaksis"},
+nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min",note:"Hipertensi emergensi"},
+dobutamine:{name:"Dobutamine",min:2,max:20,unit:"mcg/kg/min",note:"Syok kardiogenik"},
+fentanyl:{name:"Fentanyl",min:1,max:1.5,unit:"mcg/kg",note:"Analgesi"},
+norepi:{name:"Norepinephrine",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Syok septik"},
+midazolam:{name:"Midazolam",min:0.05,max:0.1,unit:"mg/kg",note:"Sedasi"},
+heparin:{name:"Heparin",min:10,max:20,unit:"unit/kg/hour",note:"Antikoagulan"}
 };
+
+let logs=[],totalCalc=0,unsafeCount=0,usage={};
 
 const drugSelect=document.getElementById("drug");
 
@@ -62,11 +87,25 @@ o.value=k;o.text=drugs[k].name;
 drugSelect.appendChild(o);
 }
 
+function updateInfo(){
+let d=drugs[drugSelect.value];
+safeRange.innerHTML=`Dosis Aman: ${d.min}-${d.max} ${d.unit}`;
+drugInfo.innerHTML=`<b>Catatan:</b> ${d.note}`;
+}
+drugSelect.addEventListener("change",updateInfo);
+updateInfo();
+
 function calculateDose(){
-let w=weight.value,d=dose.value,mgv=mg.value,mlv=ml.value;
+let w=parseFloat(weight.value);
+let d=parseFloat(dose.value);
+let mgv=parseFloat(mg.value);
+let mlv=parseFloat(ml.value);
 let drug=drugs[drugSelect.value];
 
-if(!w||!d){result.innerHTML="Lengkapi";return;}
+if(!w||!d){result.innerHTML="Lengkapi data";return;}
+
+let unsafe=d<drug.min||d>drug.max;
+if(unsafe)unsafeCount++;
 
 let res="";
 
@@ -74,11 +113,52 @@ if(drug.unit.includes("mcg/kg/min")){
 if(!mgv||!mlv){result.innerHTML="Isi konsentrasi";return;}
 let mlh=((w*d)/(mgv*1000/mlv))*60;
 res=mlh.toFixed(2)+" ml/jam";
+}else if(drug.unit.includes("mcg/kg")){
+res=(w*d).toFixed(2)+" mcg";
+}else if(drug.unit.includes("mg/kg")){
+res=(w*d).toFixed(2)+" mg";
 }else{
-res=(w*d).toFixed(2)+" "+drug.unit.split("/")[0];
+res=(w*d).toFixed(2)+" unit/jam";
 }
 
-result.innerHTML="Hasil: "+res;
+result.innerHTML="Hasil: "+res+(unsafe?" ⚠ Tidak Aman":" ✅ Aman");
+
+logs.push(`${drug.name} | ${d} → ${res}`);
+totalCalc++;
+usage[drug.name]=(usage[drug.name]||0)+1;
+
+updateDash();
+renderLog();
+}
+
+function updateDash(){
+totalCalcSpan.textContent=totalCalc;
+unsafeCountSpan.textContent=unsafeCount;
+
+let max="-",val=0;
+for(let k in usage){
+if(usage[k]>val){val=usage[k];max=k;}
+}
+mostUsedSpan.textContent=max;
+}
+
+function renderLog(){
+logList.innerHTML="";
+logs.forEach(l=>{
+let li=document.createElement("li");
+li.textContent=l;
+logList.prepend(li);
+});
+}
+
+function exportCSV(){
+let csv="Data\n";
+logs.forEach(l=>csv+=l+"\n");
+let blob=new Blob([csv]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="SMART-HAM.csv";
+a.click();
 }
 
 function downloadPDF(){
@@ -91,23 +171,21 @@ let mgv=parseFloat(mg.value);
 let mlv=parseFloat(ml.value);
 
 doc.text("SMART-HAM",20,20);
-doc.text("Auto Dose Range",20,30);
+doc.text("RSUP Dr. Hasan Sadikin",20,28);
 
-let doses=[];
-let step=(drug.max-drug.min)/4;
-
-for(let i=0;i<5;i++){
-doses.push((drug.min+(step*i)).toFixed(2));
-}
-
-let y=50;
-
+let y=40;
 doc.text("Obat: "+drug.name,20,y); y+=10;
 doc.text("BB: "+w+" kg",20,y); y+=10;
 
-doc.text("Range Dosis:",20,y); y+=10;
+doc.text("=== HASIL UTAMA ===",20,y); y+=10;
+doc.text(result.innerText,20,y); y+=15;
 
-doses.forEach(d=>{
+doc.text("=== RANGE DOSIS (AUTO) ===",20,y); y+=10;
+
+let step=(drug.max-drug.min)/4;
+
+for(let i=0;i<5;i++){
+let d=(drug.min+(step*i));
 let res="";
 
 if(drug.unit.includes("mcg/kg/min")){
@@ -117,11 +195,11 @@ res=mlh.toFixed(2)+" ml/jam";
 res=(w*d).toFixed(2);
 }
 
-doc.text(d+" → "+res,20,y);
+doc.text(d.toFixed(2)+" → "+res,20,y);
 y+=8;
-});
+}
 
-doc.save("SMART-HAM-RANGE.pdf");
+doc.save("SMART-HAM.pdf");
 }
 </script>
 
