@@ -7,92 +7,33 @@
 
 <style>
 body {margin:0;font-family:'Segoe UI';background:#f4f6f9;}
-
-header {
-background:#0f2d5a;
-color:white;
-padding:12px;
-display:flex;
-align-items:center;
-justify-content:center;
-gap:12px;
-}
-
+header {background:#0f2d5a;color:white;padding:12px;display:flex;align-items:center;justify-content:center;gap:12px;}
 header img{height:50px;}
-header div{text-align:left;}
-
 .container {max-width:900px;margin:auto;padding:15px;}
-
-.card {
-background:white;
-padding:20px;
-margin-top:20px;
-border-radius:12px;
-box-shadow:0 4px 15px rgba(0,0,0,0.08);
-}
-
-input,select,button {
-width:100%;
-padding:10px;
-margin-top:8px;
-border-radius:8px;
-border:1px solid #ccc;
-}
-
-button {
-background:#0f2d5a;
-color:white;
-border:none;
-cursor:pointer;
-}
-
+.card {background:white;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.08);}
+input,select,button {width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;}
+button {background:#0f2d5a;color:white;border:none;cursor:pointer;}
 .result {margin-top:10px;font-weight:bold;}
 .safe {color:green;}
 .unsafe {color:red;}
 .flex2 {display:flex;gap:10px;}
 
-/* SPINNER */
 #loadingOverlay{
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.4);
-align-items:center;
-justify-content:center;
-z-index:9999;
+display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:9999;
 }
-
-.spinnerBox{
-background:white;
-padding:20px 30px;
-border-radius:12px;
-text-align:center;
-}
-
 .spinner{
-border:5px solid #eee;
-border-top:5px solid #0f2d5a;
-border-radius:50%;
-width:40px;
-height:40px;
-animation:spin 1s linear infinite;
-margin:auto;
+border:5px solid #eee;border-top:5px solid #0f2d5a;border-radius:50%;
+width:40px;height:40px;animation:spin 1s linear infinite;margin:auto;
 }
-
-@keyframes spin{
-0%{transform:rotate(0deg);}
-100%{transform:rotate(360deg);}
-}
+@keyframes spin{100%{transform:rotate(360deg);}}
 </style>
 </head>
 
 <body>
 
 <header>
-<img src="https://rshs.go.id/rshs-logo.png">
+<img id="logoUI">
 <div>
 <strong>SMART-HAM</strong><br>
 <small>RSUP Dr. Hasan Sadikin Bandung</small>
@@ -106,7 +47,6 @@ margin:auto;
 <input id="namaPasien" placeholder="Nama Pasien">
 <input id="rm" placeholder="No Rekam Medik">
 <input id="ttl" type="date">
-
 <div class="flex2">
 <input id="perawat1" placeholder="Perawat 1">
 <input id="perawat2" placeholder="Perawat 2 (Double Check)">
@@ -121,7 +61,6 @@ margin:auto;
 
 <input id="weight" type="number" placeholder="Berat Badan (kg)">
 <input id="dose" type="number" placeholder="Dosis">
-
 <input id="mg" type="number" placeholder="mg (sediaan obat)">
 <input id="ml" type="number" placeholder="ml (pelarut)">
 
@@ -146,17 +85,35 @@ margin:auto;
 
 </div>
 
-<!-- SPINNER -->
 <div id="loadingOverlay">
-  <div class="spinnerBox">
-    <div class="spinner"></div>
-    <p>Generating PDF...</p>
-  </div>
+<div style="background:white;padding:20px;border-radius:10px;text-align:center;">
+<div class="spinner"></div>
+<p>Generating PDF...</p>
+</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
+// ===== AUTO CONVERT LOGO =====
+let logoBase64="";
+function loadLogo(){
+let img=new Image();
+img.crossOrigin="Anonymous";
+img.src="https://rshs.go.id/rshs-logo.png";
+img.onload=function(){
+let canvas=document.createElement("canvas");
+canvas.width=img.width;
+canvas.height=img.height;
+let ctx=canvas.getContext("2d");
+ctx.drawImage(img,0,0);
+logoBase64=canvas.toDataURL("image/png");
+document.getElementById("logoUI").src=logoBase64;
+};
+}
+loadLogo();
+
+// ===== DATA OBAT =====
 const drugs={
 adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min"},
 nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min"},
@@ -186,6 +143,7 @@ document.getElementById("safeRange").innerHTML=
 drugSelect.addEventListener("change",updateInfo);
 updateInfo();
 
+// ===== HITUNG =====
 function calculateDose(){
 let w=parseFloat(weight.value);
 let d=parseFloat(dose.value);
@@ -228,6 +186,7 @@ document.getElementById("mostUsed").textContent=max;
 renderLog();
 }
 
+// ===== LOG =====
 function renderLog(){
 let logList=document.getElementById("logList");
 logList.innerHTML="";
@@ -248,37 +207,32 @@ a.download="SMART-HAM.csv";
 a.click();
 }
 
+// ===== FORMAT DATE =====
 function formatDate(dateStr){
 let d=new Date(dateStr);
 return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
+// ===== PDF =====
 function downloadPDF(){
 
 document.getElementById("loadingOverlay").style.display="flex";
 
 if(!result.innerText){
 alert("Hitung dulu!");
-document.getElementById("loadingOverlay").style.display="none";
+loadingOverlay.style.display="none";
 return;
 }
 
 const {jsPDF}=window.jspdf;
 let doc=new jsPDF();
 
-let img=new Image();
-img.crossOrigin="Anonymous";
-img.src="https://rshs.go.id/rshs-logo.png";
-
-img.onload=function(){generate(true,img);}
-img.onerror=function(){generate(false,null);}
-
-function generate(useLogo,img){
+setTimeout(()=>{
 
 let y=20;
 
-if(useLogo){
-doc.addImage(img,"PNG",15,10,30,30);
+if(logoBase64){
+doc.addImage(logoBase64,"PNG",15,10,30,30);
 y=50;
 }
 
@@ -302,15 +256,26 @@ doc.text("Sediaan obat: "+mg.value+" mg / "+ml.value+" ml",20,y); y+=8;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
+// AUTO DOSIS
+doc.text("Tabel Dosis:",20,y); y+=5;
+let step=(drug.max-drug.min)/4;
+
+for(let i=0;i<5;i++){
+let d=(drug.min+(step*i));
+let hasil=((weight.value*d)/(mg.value*1000/ml.value))*60;
+doc.text(d.toFixed(3)+" → "+hasil.toFixed(2)+" ml/jam",20,y);
+y+=5;
+}
+
 doc.setFontSize(9);
 doc.setTextColor(120);
-doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y,{maxWidth:170});
+doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y+5);
 
 doc.save("SMART-HAM.pdf");
 
-document.getElementById("loadingOverlay").style.display="none";
-}
+loadingOverlay.style.display="none";
 
+},800);
 }
 </script>
 
