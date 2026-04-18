@@ -7,11 +7,50 @@
 
 <style>
 body {margin:0;font-family:'Segoe UI';background:#f4f6f9;}
-header {background:#0f2d5a;color:white;padding:15px;text-align:center;}
+
+header {
+background:#0f2d5a;
+color:white;
+padding:12px;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:12px;
+}
+
+header img{
+height:50px;
+}
+
+header div{
+text-align:left;
+}
+
 .container {max-width:900px;margin:auto;padding:15px;}
-.card {background:white;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.08);}
-input,select,button {width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;}
-button {background:#0f2d5a;color:white;border:none;cursor:pointer;}
+
+.card {
+background:white;
+padding:20px;
+margin-top:20px;
+border-radius:12px;
+box-shadow:0 4px 15px rgba(0,0,0,0.08);
+}
+
+input,select,button {
+width:100%;
+padding:10px;
+margin-top:8px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+button {
+background:#0f2d5a;
+color:white;
+border:none;
+cursor:pointer;
+}
+
 .result {margin-top:10px;font-weight:bold;}
 .safe {color:green;}
 .unsafe {color:red;}
@@ -22,8 +61,11 @@ button {background:#0f2d5a;color:white;border:none;cursor:pointer;}
 <body>
 
 <header>
-<h2>SMART-HAM</h2>
+<img src="https://rshs.go.id/rshs-logo.png">
+<div>
+<strong>SMART-HAM</strong><br>
 <small>RSUP Dr. Hasan Sadikin Bandung</small>
+</div>
 </header>
 
 <div class="container">
@@ -187,17 +229,15 @@ alert("Hitung dulu sebelum download!");
 return;
 }
 
+let img=new Image();
+img.src="https://rshs.go.id/rshs-logo.png";
+
+img.onload=function(){
+
 let drug=drugs[drugSelect.value];
 let w=parseFloat(document.getElementById("weight").value);
 let mgv=parseFloat(document.getElementById("mg").value);
 let mlv=parseFloat(document.getElementById("ml").value);
-
-if(!w){alert("Isi berat badan!");return;}
-
-if(drug.unit.includes("mcg/kg/min") && (!mgv||!mlv)){
-alert("Isi sediaan & pelarut!");
-return;
-}
 
 let nama=document.getElementById("namaPasien").value;
 let rm=document.getElementById("rm").value;
@@ -205,12 +245,15 @@ let ttl=formatDate(document.getElementById("ttl").value);
 let p1=document.getElementById("perawat1").value;
 let p2=document.getElementById("perawat2").value;
 
-let y=20;
+// LOGO PDF
+doc.addImage(img,"PNG",15,10,30,30);
+
+let y=50;
 
 doc.setFontSize(14);
-doc.text("SMART-HAM",20,y); y+=6;
+doc.text("SMART-HAM",50,y); y+=6;
 doc.setFontSize(10);
-doc.text("RSUP Dr. Hasan Sadikin Bandung",20,y); y+=10;
+doc.text("RSUP Dr. Hasan Sadikin Bandung",50,y); y+=10;
 
 doc.text("Nama: "+nama,20,y); y+=5;
 doc.text("RM: "+rm,20,y); y+=5;
@@ -225,45 +268,13 @@ doc.text("Sediaan obat: "+mgv+" mg / "+mlv+" ml",20,y); y+=8;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
-doc.text("Tabel Dosis:",20,y); y+=6;
-doc.text("Dosis",20,y);
-doc.text("Hasil",100,y);
-y+=3;
-doc.line(20,y,180,y);
-y+=5;
-
-let step=(drug.max-drug.min)/4;
-
-for(let i=0;i<5;i++){
-let d=(drug.min+(step*i));
-let res="";
-
-if(drug.unit.includes("mcg/kg/min")){
-let mlh=((w*d)/(mgv*1000/mlv))*60;
-res=mlh.toFixed(2)+" ml/jam";
-}else if(drug.unit.includes("mcg/kg")){
-res=(w*d).toFixed(2)+" mcg";
-}else{
-res=(w*d).toFixed(2);
-}
-
-doc.text(d.toFixed(2),20,y);
-doc.text(res,100,y);
-y+=6;
-}
-
 // DISCLAIMER
-y+=5;
 doc.setFontSize(9);
 doc.setTextColor(120);
-doc.text(
-"Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",
-20,
-y,
-{ maxWidth: 170 }
-);
+doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y);
 
 doc.save("SMART-HAM.pdf");
+};
 }
 </script>
 
