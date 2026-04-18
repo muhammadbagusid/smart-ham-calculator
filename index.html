@@ -49,7 +49,7 @@ button {background:#0f2d5a;color:white;border:none;cursor:pointer;}
 <input id="weight" type="number" placeholder="Berat Badan (kg)">
 <input id="dose" type="number" placeholder="Dosis">
 
-<input id="mg" type="number" placeholder="mg (pengencer)">
+<input id="mg" type="number" placeholder="mg (sediaan obat)">
 <input id="ml" type="number" placeholder="ml (pengencer)">
 
 <button onclick="calculateDose()">Hitung</button>
@@ -102,16 +102,17 @@ drugSelect.appendChild(o);
 
 function updateInfo(){
 let d=drugs[drugSelect.value];
-safeRange.innerHTML=`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
+document.getElementById("safeRange").innerHTML=
+`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
 }
 drugSelect.addEventListener("change",updateInfo);
 updateInfo();
 
 function calculateDose(){
-let w=parseFloat(weight.value);
-let d=parseFloat(dose.value);
-let mgv=parseFloat(mg.value);
-let mlv=parseFloat(ml.value);
+let w=parseFloat(document.getElementById("weight").value);
+let d=parseFloat(document.getElementById("dose").value);
+let mgv=parseFloat(document.getElementById("mg").value);
+let mlv=parseFloat(document.getElementById("ml").value);
 let drug=drugs[drugSelect.value];
 
 if(!w||!d){result.innerHTML="Lengkapi data";return;}
@@ -127,10 +128,8 @@ let mlh=((w*d)/(mgv*1000/mlv))*60;
 res=mlh.toFixed(2)+" ml/jam";
 }else if(drug.unit.includes("mcg/kg")){
 res=(w*d).toFixed(2)+" mcg";
-}else if(drug.unit.includes("mg/kg")){
-res=(w*d).toFixed(2)+" mg";
 }else{
-res=(w*d).toFixed(2)+" unit/jam";
+res=(w*d).toFixed(2);
 }
 
 result.innerHTML="Hasil: "+res+(unsafe?" <span class='unsafe'>⚠ Tidak Aman</span>":" <span class='safe'>✔ Aman</span>");
@@ -155,6 +154,7 @@ mostUsedSpan.textContent=max;
 }
 
 function renderLog(){
+let logList=document.getElementById("logList");
 logList.innerHTML="";
 logs.forEach(l=>{
 let li=document.createElement("li");
@@ -182,26 +182,28 @@ function downloadPDF(){
 const {jsPDF}=window.jspdf;
 let doc=new jsPDF();
 
-let drug=drugs[drugSelect.value];
-let w=parseFloat(weight.value);
-let mgv=parseFloat(mg.value);
-let mlv=parseFloat(ml.value);
-
-if(!w){
-alert("Isi berat badan!");
+if(result.innerText===""){
+alert("Hitung dulu sebelum download!");
 return;
 }
+
+let drug=drugs[drugSelect.value];
+let w=parseFloat(document.getElementById("weight").value);
+let mgv=parseFloat(document.getElementById("mg").value);
+let mlv=parseFloat(document.getElementById("ml").value);
+
+if(!w){alert("Isi berat badan!");return;}
 
 if(drug.unit.includes("mcg/kg/min") && (!mgv||!mlv)){
 alert("Isi pengencer!");
 return;
 }
 
-let nama=namaPasien.value;
-let rm=rm.value;
+let nama=document.getElementById("namaPasien").value;
+let rm=document.getElementById("rm").value;
 let ttl=formatDate(document.getElementById("ttl").value);
-let p1=perawat1.value;
-let p2=perawat2.value;
+let p1=document.getElementById("perawat1").value;
+let p2=document.getElementById("perawat2").value;
 
 let y=20;
 
@@ -210,25 +212,20 @@ doc.text("SMART-HAM",20,y); y+=6;
 doc.setFontSize(10);
 doc.text("RSUP Dr. Hasan Sadikin Bandung",20,y); y+=10;
 
-// identitas
 doc.text("Nama: "+nama,20,y); y+=5;
 doc.text("RM: "+rm,20,y); y+=5;
 doc.text("TTL: "+ttl,20,y); y+=5;
 doc.text("Perawat 1: "+p1,20,y); y+=5;
 doc.text("Perawat 2: "+p2,20,y); y+=8;
 
-// klinis
 doc.text("Obat: "+drug.name,20,y); y+=5;
 doc.text("BB: "+w+" kg",20,y); y+=5;
-doc.text("Dosis: "+dose.value+" "+drug.unit,20,y); y+=5;
+doc.text("Dosis: "+document.getElementById("dose").value+" "+drug.unit,20,y); y+=5;
 doc.text("Pengencer: "+mgv+" mg / "+mlv+" ml",20,y); y+=8;
 
-// hasil
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
-// tabel
 doc.text("Tabel Dosis:",20,y); y+=6;
-
 doc.text("Dosis",20,y);
 doc.text("Hasil",100,y);
 y+=3;
@@ -246,10 +243,8 @@ let mlh=((w*d)/(mgv*1000/mlv))*60;
 res=mlh.toFixed(2)+" ml/jam";
 }else if(drug.unit.includes("mcg/kg")){
 res=(w*d).toFixed(2)+" mcg";
-}else if(drug.unit.includes("mg/kg")){
-res=(w*d).toFixed(2)+" mg";
 }else{
-res=(w*d).toFixed(2)+" unit/jam";
+res=(w*d).toFixed(2);
 }
 
 doc.text(d.toFixed(2),20,y);
