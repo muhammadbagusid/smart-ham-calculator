@@ -9,57 +9,89 @@
 body {margin:0;font-family:'Segoe UI';background:#f4f6f9;}
 
 header {
-background:#0f2d5a;color:white;padding:12px;
-display:flex;align-items:center;justify-content:center;gap:12px;
+background:#0f2d5a;
+color:white;
+padding:12px;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:12px;
 }
 
-header img {height:55px;}
+header img{height:50px;}
+header div{text-align:left;}
 
 .container {max-width:900px;margin:auto;padding:15px;}
 
 .card {
-background:white;padding:20px;margin-top:20px;
-border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.08);
+background:white;
+padding:20px;
+margin-top:20px;
+border-radius:12px;
+box-shadow:0 4px 15px rgba(0,0,0,0.08);
 }
 
 input,select,button {
-width:100%;padding:10px;margin-top:8px;
-border-radius:8px;border:1px solid #ccc;
+width:100%;
+padding:10px;
+margin-top:8px;
+border-radius:8px;
+border:1px solid #ccc;
 }
 
 button {
-background:#0f2d5a;color:white;border:none;cursor:pointer;
+background:#0f2d5a;
+color:white;
+border:none;
+cursor:pointer;
 }
 
 .result {margin-top:10px;font-weight:bold;}
+.safe {color:green;}
+.unsafe {color:red;}
 .flex2 {display:flex;gap:10px;}
 
-table {
-width:100%;border-collapse:collapse;margin-top:10px;
-}
-th,td {
-border:1px solid #ccc;padding:8px;text-align:center;
-}
-th {background:#0f2d5a;color:white;}
-
-#loadingOverlay {
-display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+#loadingOverlay{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
 background:rgba(0,0,0,0.4);
-align-items:center;justify-content:center;z-index:9999;
+align-items:center;
+justify-content:center;
+z-index:9999;
 }
-.spinner {
-border:5px solid #eee;border-top:5px solid #0f2d5a;
-border-radius:50%;width:40px;height:40px;
+
+.spinnerBox{
+background:white;
+padding:20px 30px;
+border-radius:12px;
+text-align:center;
+}
+
+.spinner{
+border:5px solid #eee;
+border-top:5px solid #0f2d5a;
+border-radius:50%;
+width:40px;
+height:40px;
 animation:spin 1s linear infinite;
+margin:auto;
 }
-@keyframes spin {100%{transform:rotate(360deg);}}
+
+@keyframes spin{
+0%{transform:rotate(0deg);}
+100%{transform:rotate(360deg);}
+}
 </style>
 </head>
 
 <body>
 
 <header>
-<img id="logoUI">
+<img src="https://rshs.go.id/rshs-logo.png">
 <div>
 <strong>SMART-HAM</strong><br>
 <small>RSUP Dr. Hasan Sadikin Bandung</small>
@@ -88,6 +120,7 @@ animation:spin 1s linear infinite;
 
 <input id="weight" type="number" placeholder="Berat Badan (kg)">
 <input id="dose" type="number" placeholder="Dosis">
+
 <input id="mg" type="number" placeholder="mg (sediaan obat)">
 <input id="ml" type="number" placeholder="ml (pelarut)">
 
@@ -95,157 +128,218 @@ animation:spin 1s linear infinite;
 <button onclick="downloadPDF()">Download PDF</button>
 
 <div id="result" class="result"></div>
-<div id="tablePreview"></div>
+</div>
+
+<div class="card">
+<h3>Dashboard</h3>
+<p>Total: <span id="totalCalc">0</span></p>
+<p>Terbanyak: <span id="mostUsed">-</span></p>
+<p>Tidak Aman: <span id="unsafeCount">0</span></p>
+</div>
+
+<div class="card">
+<h3>Log</h3>
+<button onclick="exportCSV()">Export Excel</button>
+<ul id="logList"></ul>
 </div>
 
 </div>
 
 <div id="loadingOverlay">
-<div style="background:white;padding:20px;border-radius:10px;text-align:center;">
-<div class="spinner"></div>
-<p>Generating PDF...</p>
-</div>
+  <div class="spinnerBox">
+    <div class="spinner"></div>
+    <p>Generating PDF...</p>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-
-// ===== LOGO BASE64 (SUDAH FIX) =====
-const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB..."; // tetap tampil
-document.getElementById("logoUI").src = logoBase64;
-
-// ===== DATA OBAT =====
 const drugs={
 adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min"},
+nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min"},
+dobutamine:{name:"Dobutamine",min:2,max:20,unit:"mcg/kg/min"},
+fentanyl:{name:"Fentanyl",min:1,max:1.5,unit:"mcg/kg"},
 norepi:{name:"Norepinephrine",min:0.01,max:0.3,unit:"mcg/kg/min"},
-dopamine:{name:"Dopamine",min:2,max:20,unit:"mcg/kg/min"}
+midazolam:{name:"Midazolam",min:0.05,max:0.1,unit:"mcg/kg/min"},
+heparin:{name:"Heparin",min:10,max:20,unit:"unit/kg/hour"}
 };
+
+let logs=[],totalCalc=0,unsafeCount=0,usage={};
+
+const drugSelect=document.getElementById("drug");
+const result=document.getElementById("result");
 
 for(let k in drugs){
 let o=document.createElement("option");
 o.value=k;o.text=drugs[k].name;
-drug.appendChild(o);
+drugSelect.appendChild(o);
 }
 
 function updateInfo(){
-let d=drugs[drug.value];
-safeRange.innerHTML=`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
+let d=drugs[drugSelect.value];
+document.getElementById("safeRange").innerHTML=
+`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
 }
-drug.addEventListener("change",updateInfo);
+drugSelect.addEventListener("change",updateInfo);
 updateInfo();
 
-// ===== HITUNG =====
 function calculateDose(){
 let w=parseFloat(weight.value);
 let d=parseFloat(dose.value);
 let mgv=parseFloat(mg.value);
 let mlv=parseFloat(ml.value);
+let drug=drugs[drugSelect.value];
 
-if(!w||!d||!mgv||!mlv){
-result.innerHTML="Lengkapi data!";
-return;
-}
+if(!w||!d){result.innerHTML="Lengkapi data";return;}
 
+let unsafe=d<drug.min||d>drug.max;
+if(unsafe)unsafeCount++;
+
+let res="";
+
+if(drug.unit.includes("mcg/kg/min")){
+if(!mgv||!mlv){result.innerHTML="Isi sediaan & pelarut";return;}
 let mlh=((w*d)/(mgv*1000/mlv))*60;
-result.innerHTML=`Hasil: ${mlh.toFixed(2)} ml/jam`;
-
-generateTable(w,mgv,mlv);
+res=mlh.toFixed(2)+" ml/jam";
+}else if(drug.unit.includes("mcg/kg")){
+res=(w*d).toFixed(2)+" mcg";
+}else{
+res=(w*d).toFixed(2);
 }
 
-// ===== TABEL UI =====
-function generateTable(w,mgv,mlv){
-let data=drugs[drug.value];
-let html=`<table>
-<tr><th>Dosis</th><th>ml/jam</th></tr>`;
+result.innerHTML="Hasil: "+res+(unsafe?" <span class='unsafe'>⚠ Tidak Aman</span>":" <span class='safe'>✔ Aman</span>");
 
-let step=(data.max-data.min)/4;
+logs.push(`${drug.name} | ${d} → ${res}`);
+totalCalc++;
+usage[drug.name]=(usage[drug.name]||0)+1;
 
-for(let i=0;i<5;i++){
-let d=(data.min+(step*i));
-let res=((w*d)/(mgv*1000/mlv))*60;
-html+=`<tr><td>${d.toFixed(3)}</td><td>${res.toFixed(2)}</td></tr>`;
+document.getElementById("totalCalc").textContent=totalCalc;
+document.getElementById("unsafeCount").textContent=unsafeCount;
+
+let max="-",val=0;
+for(let k in usage){
+if(usage[k]>val){val=usage[k];max=k;}
+}
+document.getElementById("mostUsed").textContent=max;
+
+renderLog();
 }
 
-html+="</table>";
-tablePreview.innerHTML=html;
+function renderLog(){
+let logList=document.getElementById("logList");
+logList.innerHTML="";
+logs.forEach(l=>{
+let li=document.createElement("li");
+li.textContent=l;
+logList.prepend(li);
+});
 }
 
-// ===== PDF =====
+function exportCSV(){
+let csv="Data\n";
+logs.forEach(l=>csv+=l+"\n");
+let blob=new Blob([csv]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="SMART-HAM.csv";
+a.click();
+}
+
+function formatDate(dateStr){
+let d=new Date(dateStr);
+return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
 function downloadPDF(){
 
-if(result.innerText===""){
+document.getElementById("loadingOverlay").style.display="flex";
+
+if(!result.innerText){
 alert("Hitung dulu!");
+document.getElementById("loadingOverlay").style.display="none";
 return;
 }
-
-loadingOverlay.style.display="flex";
 
 const {jsPDF}=window.jspdf;
 let doc=new jsPDF();
 
-setTimeout(()=>{
+let img=new Image();
+img.crossOrigin="Anonymous";
+img.src="https://rshs.go.id/rshs-logo.png";
 
-doc.addImage(logoBase64,"PNG",15,10,30,30);
+img.onload=function(){generate(true,img);}
+img.onerror=function(){generate(false,null);}
 
-let y=50;
+function generate(useLogo,img){
+
+let y=20;
+
+if(useLogo){
+doc.addImage(img,"PNG",15,10,30,30);
+y=50;
+}
+
 doc.setFontSize(14);
-doc.text("SMART-HAM",50,y); y+=8;
+doc.text("SMART-HAM",50,y); y+=6;
 doc.setFontSize(10);
 doc.text("RSUP Dr. Hasan Sadikin Bandung",50,y); y+=10;
 
 doc.text("Nama: "+namaPasien.value,20,y); y+=5;
 doc.text("RM: "+rm.value,20,y); y+=5;
-doc.text("TTL: "+ttl.value,20,y); y+=5;
+doc.text("TTL: "+formatDate(ttl.value),20,y); y+=5;
 doc.text("Perawat 1: "+perawat1.value,20,y); y+=5;
-doc.text("Perawat 2: "+perawat2.value,20,y); y+=10;
+doc.text("Perawat 2: "+perawat2.value,20,y); y+=8;
+
+let drug=drugs[drugSelect.value];
+
+doc.text("Obat: "+drug.name,20,y); y+=5;
+doc.text("BB: "+weight.value+" kg",20,y); y+=5;
+doc.text("Dosis: "+dose.value+" "+drug.unit,20,y); y+=5;
+doc.text("Sediaan obat: "+mg.value+" mg / "+ml.value+" ml",20,y); y+=8;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
-// ===== TABEL PDF PROFESIONAL =====
-let data=drugs[drug.value];
-let w=parseFloat(weight.value);
-let mgv=parseFloat(mg.value);
-let mlv=parseFloat(ml.value);
+// 🔥 AUTO DOSIS TABLE
+doc.setFontSize(11);
+doc.text("Tabel Dosis Otomatis:",20,y); y+=6;
 
-doc.text("Tabel Dosis:",20,y); y+=5;
+doc.setFontSize(10);
+doc.text("Dosis",20,y);
+doc.text("Hasil",100,y);
+y+=3;
+doc.line(20,y,180,y);
+y+=5;
 
-// header
-doc.setFillColor(15,45,90);
-doc.setTextColor(255,255,255);
-doc.rect(20,y,60,8,'F');
-doc.rect(80,y,80,8,'F');
-doc.text("Dosis",25,y+5);
-doc.text("Hasil (ml/jam)",85,y+5);
-y+=8;
-
-doc.setTextColor(0,0,0);
-
-let step=(data.max-data.min)/4;
+let step=(drug.max-drug.min)/4;
 
 for(let i=0;i<5;i++){
-let d=(data.min+(step*i));
-let res=((w*d)/(mgv*1000/mlv))*60;
+let d=(drug.min+(step*i));
+let hasil="";
 
-doc.rect(20,y,60,8);
-doc.rect(80,y,80,8);
-
-doc.text(d.toFixed(3),25,y+5);
-doc.text(res.toFixed(2)+" ml/jam",85,y+5);
-
-y+=8;
+if(drug.unit.includes("mcg/kg/min")){
+let mlh=((weight.value*d)/(mg.value*1000/ml.value))*60;
+hasil=mlh.toFixed(2)+" ml/jam";
+}else if(drug.unit.includes("mcg/kg")){
+hasil=(weight.value*d).toFixed(2)+" mcg";
+}else{
+hasil=(weight.value*d).toFixed(2);
 }
 
-// disclaimer
+doc.text(d.toFixed(3),20,y);
+doc.text(hasil,100,y);
+y+=6;
+}
+
 doc.setFontSize(9);
 doc.setTextColor(120);
-doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y+10);
+doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y,{maxWidth:170});
 
 doc.save("SMART-HAM.pdf");
 
-loadingOverlay.style.display="none";
+document.getElementById("loadingOverlay").style.display="none";
+}
 
-},600);
 }
 </script>
 
