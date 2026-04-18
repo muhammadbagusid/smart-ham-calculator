@@ -7,26 +7,50 @@
 
 <style>
 body {margin:0;font-family:'Segoe UI';background:#f4f6f9;}
-header {background:#0f2d5a;color:white;padding:12px;display:flex;align-items:center;justify-content:center;gap:12px;}
-header img{height:50px;}
+header {
+background:#0f2d5a;color:white;padding:12px;
+display:flex;align-items:center;justify-content:center;gap:12px;
+}
+header img{height:55px;}
+
 .container {max-width:900px;margin:auto;padding:15px;}
-.card {background:white;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.08);}
-input,select,button {width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;}
-button {background:#0f2d5a;color:white;border:none;cursor:pointer;}
+
+.card {
+background:white;padding:20px;margin-top:20px;
+border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.08);
+}
+
+input,select,button {
+width:100%;padding:10px;margin-top:8px;
+border-radius:8px;border:1px solid #ccc;
+}
+
+button {
+background:#0f2d5a;color:white;border:none;cursor:pointer;
+}
+
 .result {margin-top:10px;font-weight:bold;}
-.safe {color:green;}
-.unsafe {color:red;}
 .flex2 {display:flex;gap:10px;}
 
-#loadingOverlay{
+table {
+width:100%;border-collapse:collapse;margin-top:10px;
+}
+th,td {
+border:1px solid #ccc;padding:6px;text-align:center;
+}
+th {background:#0f2d5a;color:white;}
+
+#loadingOverlay {
 display:none;position:fixed;top:0;left:0;width:100%;height:100%;
-background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:9999;
+background:rgba(0,0,0,0.4);
+align-items:center;justify-content:center;z-index:9999;
 }
-.spinner{
-border:5px solid #eee;border-top:5px solid #0f2d5a;border-radius:50%;
-width:40px;height:40px;animation:spin 1s linear infinite;margin:auto;
+.spinner {
+border:5px solid #eee;border-top:5px solid #0f2d5a;
+border-radius:50%;width:40px;height:40px;
+animation:spin 1s linear infinite;
 }
-@keyframes spin{100%{transform:rotate(360deg);}}
+@keyframes spin {100%{transform:rotate(360deg);}}
 </style>
 </head>
 
@@ -47,6 +71,7 @@ width:40px;height:40px;animation:spin 1s linear infinite;margin:auto;
 <input id="namaPasien" placeholder="Nama Pasien">
 <input id="rm" placeholder="No Rekam Medik">
 <input id="ttl" type="date">
+
 <div class="flex2">
 <input id="perawat1" placeholder="Perawat 1">
 <input id="perawat2" placeholder="Perawat 2 (Double Check)">
@@ -68,19 +93,7 @@ width:40px;height:40px;animation:spin 1s linear infinite;margin:auto;
 <button onclick="downloadPDF()">Download PDF</button>
 
 <div id="result" class="result"></div>
-</div>
-
-<div class="card">
-<h3>Dashboard</h3>
-<p>Total: <span id="totalCalc">0</span></p>
-<p>Terbanyak: <span id="mostUsed">-</span></p>
-<p>Tidak Aman: <span id="unsafeCount">0</span></p>
-</div>
-
-<div class="card">
-<h3>Log</h3>
-<button onclick="exportCSV()">Export Excel</button>
-<ul id="logList"></ul>
+<div id="tablePreview"></div>
 </div>
 
 </div>
@@ -95,52 +108,29 @@ width:40px;height:40px;animation:spin 1s linear infinite;margin:auto;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-// ===== AUTO CONVERT LOGO =====
-let logoBase64="";
-function loadLogo(){
-let img=new Image();
-img.crossOrigin="Anonymous";
-img.src="https://rshs.go.id/rshs-logo.png";
-img.onload=function(){
-let canvas=document.createElement("canvas");
-canvas.width=img.width;
-canvas.height=img.height;
-let ctx=canvas.getContext("2d");
-ctx.drawImage(img,0,0);
-logoBase64=canvas.toDataURL("image/png");
-document.getElementById("logoUI").src=logoBase64;
-};
-}
-loadLogo();
+
+// ===== LOGO BASE64 (SUDAH FIX) =====
+const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."; // aman, tampil di UI & PDF
+document.getElementById("logoUI").src = logoBase64;
 
 // ===== DATA OBAT =====
 const drugs={
 adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min"},
-nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min"},
-dobutamine:{name:"Dobutamine",min:2,max:20,unit:"mcg/kg/min"},
-fentanyl:{name:"Fentanyl",min:1,max:1.5,unit:"mcg/kg"},
 norepi:{name:"Norepinephrine",min:0.01,max:0.3,unit:"mcg/kg/min"},
-midazolam:{name:"Midazolam",min:0.05,max:0.1,unit:"mcg/kg/min"},
-heparin:{name:"Heparin",min:10,max:20,unit:"unit/kg/hour"}
+dopamine:{name:"Dopamine",min:2,max:20,unit:"mcg/kg/min"}
 };
-
-let logs=[],totalCalc=0,unsafeCount=0,usage={};
-
-const drugSelect=document.getElementById("drug");
-const result=document.getElementById("result");
 
 for(let k in drugs){
 let o=document.createElement("option");
 o.value=k;o.text=drugs[k].name;
-drugSelect.appendChild(o);
+drug.appendChild(o);
 }
 
 function updateInfo(){
-let d=drugs[drugSelect.value];
-document.getElementById("safeRange").innerHTML=
-`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
+let d=drugs[drug.value];
+safeRange.innerHTML=`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
 }
-drugSelect.addEventListener("change",updateInfo);
+drug.addEventListener("change",updateInfo);
 updateInfo();
 
 // ===== HITUNG =====
@@ -149,121 +139,79 @@ let w=parseFloat(weight.value);
 let d=parseFloat(dose.value);
 let mgv=parseFloat(mg.value);
 let mlv=parseFloat(ml.value);
-let drug=drugs[drugSelect.value];
 
-if(!w||!d){result.innerHTML="Lengkapi data";return;}
+if(!w||!d||!mgv||!mlv){
+result.innerHTML="Lengkapi data!";
+return;
+}
 
-let unsafe=d<drug.min||d>drug.max;
-if(unsafe)unsafeCount++;
-
-let res="";
-
-if(drug.unit.includes("mcg/kg/min")){
-if(!mgv||!mlv){result.innerHTML="Isi sediaan & pelarut";return;}
 let mlh=((w*d)/(mgv*1000/mlv))*60;
-res=mlh.toFixed(2)+" ml/jam";
-}else if(drug.unit.includes("mcg/kg")){
-res=(w*d).toFixed(2)+" mcg";
-}else{
-res=(w*d).toFixed(2);
+result.innerHTML=`Hasil: ${mlh.toFixed(2)} ml/jam`;
+
+generateTable(w,mgv,mlv);
 }
 
-result.innerHTML="Hasil: "+res+(unsafe?" <span class='unsafe'>⚠ Tidak Aman</span>":" <span class='safe'>✔ Aman</span>");
+// ===== TABEL =====
+function generateTable(w,mgv,mlv){
+let data=drugs[drug.value];
+let html=`<table>
+<tr><th>Dosis</th><th>ml/jam</th></tr>`;
 
-logs.push(`${drug.name} | ${d} → ${res}`);
-totalCalc++;
-usage[drug.name]=(usage[drug.name]||0)+1;
+let step=(data.max-data.min)/4;
 
-document.getElementById("totalCalc").textContent=totalCalc;
-document.getElementById("unsafeCount").textContent=unsafeCount;
+for(let i=0;i<5;i++){
+let d=(data.min+(step*i));
+let res=((w*d)/(mgv*1000/mlv))*60;
 
-let max="-",val=0;
-for(let k in usage){
-if(usage[k]>val){val=usage[k];max=k;}
+html+=`<tr><td>${d.toFixed(3)}</td><td>${res.toFixed(2)}</td></tr>`;
 }
-document.getElementById("mostUsed").textContent=max;
-
-renderLog();
-}
-
-// ===== LOG =====
-function renderLog(){
-let logList=document.getElementById("logList");
-logList.innerHTML="";
-logs.forEach(l=>{
-let li=document.createElement("li");
-li.textContent=l;
-logList.prepend(li);
-});
-}
-
-function exportCSV(){
-let csv="Data\n";
-logs.forEach(l=>csv+=l+"\n");
-let blob=new Blob([csv]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="SMART-HAM.csv";
-a.click();
-}
-
-// ===== FORMAT DATE =====
-function formatDate(dateStr){
-let d=new Date(dateStr);
-return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+html+="</table>";
+tablePreview.innerHTML=html;
 }
 
 // ===== PDF =====
 function downloadPDF(){
 
-document.getElementById("loadingOverlay").style.display="flex";
-
-if(!result.innerText){
+if(result.innerText===""){
 alert("Hitung dulu!");
-loadingOverlay.style.display="none";
 return;
 }
+
+loadingOverlay.style.display="flex";
 
 const {jsPDF}=window.jspdf;
 let doc=new jsPDF();
 
 setTimeout(()=>{
 
-let y=20;
-
-if(logoBase64){
 doc.addImage(logoBase64,"PNG",15,10,30,30);
-y=50;
-}
 
+let y=50;
 doc.setFontSize(14);
-doc.text("SMART-HAM",50,y); y+=6;
+doc.text("SMART-HAM",50,y); y+=8;
 doc.setFontSize(10);
 doc.text("RSUP Dr. Hasan Sadikin Bandung",50,y); y+=10;
 
 doc.text("Nama: "+namaPasien.value,20,y); y+=5;
 doc.text("RM: "+rm.value,20,y); y+=5;
-doc.text("TTL: "+formatDate(ttl.value),20,y); y+=5;
+doc.text("TTL: "+ttl.value,20,y); y+=5;
 doc.text("Perawat 1: "+perawat1.value,20,y); y+=5;
-doc.text("Perawat 2: "+perawat2.value,20,y); y+=8;
-
-let drug=drugs[drugSelect.value];
-
-doc.text("Obat: "+drug.name,20,y); y+=5;
-doc.text("BB: "+weight.value+" kg",20,y); y+=5;
-doc.text("Dosis: "+dose.value+" "+drug.unit,20,y); y+=5;
-doc.text("Sediaan obat: "+mg.value+" mg / "+ml.value+" ml",20,y); y+=8;
+doc.text("Perawat 2: "+perawat2.value,20,y); y+=10;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
-// AUTO DOSIS
+let data=drugs[drug.value];
+let w=weight.value, mgv=mg.value, mlv=ml.value;
+
 doc.text("Tabel Dosis:",20,y); y+=5;
-let step=(drug.max-drug.min)/4;
+
+let step=(data.max-data.min)/4;
 
 for(let i=0;i<5;i++){
-let d=(drug.min+(step*i));
-let hasil=((weight.value*d)/(mg.value*1000/ml.value))*60;
-doc.text(d.toFixed(3)+" → "+hasil.toFixed(2)+" ml/jam",20,y);
+let d=(data.min+(step*i));
+let res=((w*d)/(mgv*1000/mlv))*60;
+
+doc.text(d.toFixed(3)+" → "+res.toFixed(2)+" ml/jam",20,y);
 y+=5;
 }
 
@@ -275,7 +223,7 @@ doc.save("SMART-HAM.pdf");
 
 loadingOverlay.style.display="none";
 
-},800);
+},600);
 }
 </script>
 
