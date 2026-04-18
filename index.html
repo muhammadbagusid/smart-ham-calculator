@@ -50,7 +50,7 @@ button {background:#0f2d5a;color:white;border:none;cursor:pointer;}
 <input id="dose" type="number" placeholder="Dosis">
 
 <input id="mg" type="number" placeholder="mg (sediaan obat)">
-<input id="ml" type="number" placeholder="ml (pengencer)">
+<input id="ml" type="number" placeholder="ml (pelarut)">
 
 <button onclick="calculateDose()">Hitung</button>
 <button onclick="downloadPDF()">Download PDF</button>
@@ -123,7 +123,7 @@ if(unsafe)unsafeCount++;
 let res="";
 
 if(drug.unit.includes("mcg/kg/min")){
-if(!mgv||!mlv){result.innerHTML="Isi pengencer";return;}
+if(!mgv||!mlv){result.innerHTML="Isi sediaan & pelarut";return;}
 let mlh=((w*d)/(mgv*1000/mlv))*60;
 res=mlh.toFixed(2)+" ml/jam";
 }else if(drug.unit.includes("mcg/kg")){
@@ -195,7 +195,7 @@ let mlv=parseFloat(document.getElementById("ml").value);
 if(!w){alert("Isi berat badan!");return;}
 
 if(drug.unit.includes("mcg/kg/min") && (!mgv||!mlv)){
-alert("Isi pengencer!");
+alert("Isi sediaan & pelarut!");
 return;
 }
 
@@ -221,7 +221,7 @@ doc.text("Perawat 2: "+p2,20,y); y+=8;
 doc.text("Obat: "+drug.name,20,y); y+=5;
 doc.text("BB: "+w+" kg",20,y); y+=5;
 doc.text("Dosis: "+document.getElementById("dose").value+" "+drug.unit,20,y); y+=5;
-doc.text("Pengencer: "+mgv+" mg / "+mlv+" ml",20,y); y+=8;
+doc.text("Sediaan obat: "+mgv+" mg / "+mlv+" ml",20,y); y+=8;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
@@ -251,6 +251,17 @@ doc.text(d.toFixed(2),20,y);
 doc.text(res,100,y);
 y+=6;
 }
+
+// DISCLAIMER
+y+=5;
+doc.setFontSize(9);
+doc.setTextColor(120);
+doc.text(
+"Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",
+20,
+y,
+{ maxWidth: 170 }
+);
 
 doc.save("SMART-HAM.pdf");
 }
