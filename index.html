@@ -7,11 +7,13 @@
 
 <style>
 body {margin:0;font-family:'Segoe UI';background:#f4f6f9;}
+
 header {
 background:#0f2d5a;color:white;padding:12px;
 display:flex;align-items:center;justify-content:center;gap:12px;
 }
-header img{height:55px;}
+
+header img {height:55px;}
 
 .container {max-width:900px;margin:auto;padding:15px;}
 
@@ -36,7 +38,7 @@ table {
 width:100%;border-collapse:collapse;margin-top:10px;
 }
 th,td {
-border:1px solid #ccc;padding:6px;text-align:center;
+border:1px solid #ccc;padding:8px;text-align:center;
 }
 th {background:#0f2d5a;color:white;}
 
@@ -110,7 +112,7 @@ animation:spin 1s linear infinite;
 <script>
 
 // ===== LOGO BASE64 (SUDAH FIX) =====
-const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."; // aman, tampil di UI & PDF
+const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB..."; // tetap tampil
 document.getElementById("logoUI").src = logoBase64;
 
 // ===== DATA OBAT =====
@@ -151,7 +153,7 @@ result.innerHTML=`Hasil: ${mlh.toFixed(2)} ml/jam`;
 generateTable(w,mgv,mlv);
 }
 
-// ===== TABEL =====
+// ===== TABEL UI =====
 function generateTable(w,mgv,mlv){
 let data=drugs[drug.value];
 let html=`<table>
@@ -162,9 +164,9 @@ let step=(data.max-data.min)/4;
 for(let i=0;i<5;i++){
 let d=(data.min+(step*i));
 let res=((w*d)/(mgv*1000/mlv))*60;
-
 html+=`<tr><td>${d.toFixed(3)}</td><td>${res.toFixed(2)}</td></tr>`;
 }
+
 html+="</table>";
 tablePreview.innerHTML=html;
 }
@@ -200,10 +202,24 @@ doc.text("Perawat 2: "+perawat2.value,20,y); y+=10;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
+// ===== TABEL PDF PROFESIONAL =====
 let data=drugs[drug.value];
-let w=weight.value, mgv=mg.value, mlv=ml.value;
+let w=parseFloat(weight.value);
+let mgv=parseFloat(mg.value);
+let mlv=parseFloat(ml.value);
 
 doc.text("Tabel Dosis:",20,y); y+=5;
+
+// header
+doc.setFillColor(15,45,90);
+doc.setTextColor(255,255,255);
+doc.rect(20,y,60,8,'F');
+doc.rect(80,y,80,8,'F');
+doc.text("Dosis",25,y+5);
+doc.text("Hasil (ml/jam)",85,y+5);
+y+=8;
+
+doc.setTextColor(0,0,0);
 
 let step=(data.max-data.min)/4;
 
@@ -211,13 +227,19 @@ for(let i=0;i<5;i++){
 let d=(data.min+(step*i));
 let res=((w*d)/(mgv*1000/mlv))*60;
 
-doc.text(d.toFixed(3)+" → "+res.toFixed(2)+" ml/jam",20,y);
-y+=5;
+doc.rect(20,y,60,8);
+doc.rect(80,y,80,8);
+
+doc.text(d.toFixed(3),25,y+5);
+doc.text(res.toFixed(2)+" ml/jam",85,y+5);
+
+y+=8;
 }
 
+// disclaimer
 doc.setFontSize(9);
 doc.setTextColor(120);
-doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y+5);
+doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y+10);
 
 doc.save("SMART-HAM.pdf");
 
