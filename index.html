@@ -10,12 +10,9 @@ body {margin:0;font-family:'Segoe UI';background:#f4f6f9;}
 header {background:#0f2d5a;color:white;padding:20px;text-align:center;}
 .container {max-width:900px;margin:auto;padding:15px;}
 .card {background:white;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.08);}
-label {display:block;margin-top:10px;font-weight:600;}
 input,select,button {width:100%;padding:8px;margin-top:5px;}
-button {background:#0f2d5a;color:white;border:none;border-radius:8px;cursor:pointer;}
+button {background:#0f2d5a;color:white;border:none;border-radius:8px;}
 .result {margin-top:10px;font-weight:bold;}
-.safe-range {font-size:13px;}
-.drug-info {background:#eef3ff;padding:10px;border-radius:8px;margin-top:10px;font-size:13px;}
 .safe {color:green;}
 .unsafe {color:red;}
 </style>
@@ -32,18 +29,24 @@ button {background:#0f2d5a;color:white;border:none;border-radius:8px;cursor:poin
 <div class="container">
 
 <div class="card">
+<h3>Identitas Pasien</h3>
+<input id="namaPasien" placeholder="Nama Pasien">
+<input id="rm" placeholder="No Rekam Medik">
+<input id="ttl" placeholder="Tanggal Lahir">
+<input id="perawat" placeholder="Nama Perawat">
+</div>
+
+<div class="card">
 <h3>Input Klinis</h3>
 
 <select id="drug"></select>
+<div id="safeRange"></div>
+<div id="drugInfo"></div>
 
-<div id="safeRange" class="safe-range"></div>
-<div id="drugInfo" class="drug-info"></div>
-
-<input type="number" id="weight" placeholder="Berat Badan (kg)">
-<input type="number" id="dose" placeholder="Dosis">
-
-<input type="number" id="mg" placeholder="mg (untuk infus)">
-<input type="number" id="ml" placeholder="ml (untuk infus)">
+<input id="weight" type="number" placeholder="BB (kg)">
+<input id="dose" type="number" placeholder="Dosis">
+<input id="mg" type="number" placeholder="mg (infus)">
+<input id="ml" type="number" placeholder="ml (infus)">
 
 <button onclick="calculateDose()">Hitung</button>
 <button onclick="downloadPDF()">Download PDF</button>
@@ -70,11 +73,11 @@ button {background:#0f2d5a;color:white;border:none;border-radius:8px;cursor:poin
 
 <script>
 const drugs={
-adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Syok, anafilaksis"},
-nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min",note:"Hipertensi emergensi"},
-dobutamine:{name:"Dobutamine",min:2,max:20,unit:"mcg/kg/min",note:"Syok kardiogenik"},
+adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Syok"},
+nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min",note:"Hipertensi"},
+dobutamine:{name:"Dobutamine",min:2,max:20,unit:"mcg/kg/min",note:"Kardiogenik"},
 fentanyl:{name:"Fentanyl",min:1,max:1.5,unit:"mcg/kg",note:"Analgesi"},
-norepi:{name:"Norepinephrine",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Syok septik"},
+norepi:{name:"Norepinephrine",min:0.01,max:0.3,unit:"mcg/kg/min",note:"Sepsis"},
 midazolam:{name:"Midazolam",min:0.05,max:0.1,unit:"mg/kg",note:"Sedasi"},
 heparin:{name:"Heparin",min:10,max:20,unit:"unit/kg/hour",note:"Antikoagulan"}
 };
@@ -82,9 +85,6 @@ heparin:{name:"Heparin",min:10,max:20,unit:"unit/kg/hour",note:"Antikoagulan"}
 let logs=[],totalCalc=0,unsafeCount=0,usage={};
 
 const drugSelect=document.getElementById("drug");
-const totalCalcSpan=document.getElementById("totalCalc");
-const unsafeCountSpan=document.getElementById("unsafeCount");
-const mostUsedSpan=document.getElementById("mostUsed");
 const result=document.getElementById("result");
 
 for(let k in drugs){
@@ -95,65 +95,43 @@ drugSelect.appendChild(o);
 
 function updateInfo(){
 let d=drugs[drugSelect.value];
-safeRange.innerHTML=`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
-drugInfo.innerHTML=`<b>Catatan:</b> ${d.note}`;
+safeRange.innerHTML=`Dosis: ${d.min}-${d.max} ${d.unit}`;
+drugInfo.innerHTML=`${d.note}`;
 }
 drugSelect.addEventListener("change",updateInfo);
 updateInfo();
 
 function calculateDose(){
-let w=parseFloat(weight.value);
-let d=parseFloat(dose.value);
-let mgv=parseFloat(mg.value);
-let mlv=parseFloat(ml.value);
+let w=weight.value,d=dose.value,mgv=mg.value,mlv=ml.value;
 let drug=drugs[drugSelect.value];
 
-if(!w||!d){
-result.innerHTML="Lengkapi data!";
-return;
-}
+if(!w||!d){result.innerHTML="Lengkapi data";return;}
 
 let unsafe=d<drug.min||d>drug.max;
 if(unsafe)unsafeCount++;
 
 let res="";
-
 if(drug.unit.includes("mcg/kg/min")){
-if(!mgv||!mlv){
-result.innerHTML="Isi konsentrasi infus!";
-return;
-}
+if(!mgv||!mlv){result.innerHTML="Isi pengencer";return;}
 let mlh=((w*d)/(mgv*1000/mlv))*60;
 res=mlh.toFixed(2)+" ml/jam";
-}
-else if(drug.unit.includes("mcg/kg")){
-res=(w*d).toFixed(2)+" mcg";
-}
-else if(drug.unit.includes("mg/kg")){
-res=(w*d).toFixed(2)+" mg";
-}
-else{
-res=(w*d).toFixed(2)+" unit/jam";
+}else{
+res=(w*d).toFixed(2);
 }
 
-result.innerHTML="Hasil: "+res+(unsafe?" <span class='unsafe'>⚠ Tidak Aman</span>":" <span class='safe'>✅ Aman</span>");
+result.innerHTML="Hasil: "+res+(unsafe?" <span class='unsafe'>⚠</span>":" <span class='safe'>✔</span>");
 
-logs.push(`${drug.name} | ${d} → ${res}`);
+logs.push(`${drug.name} ${res}`);
 totalCalc++;
 usage[drug.name]=(usage[drug.name]||0)+1;
-
-updateDash();
-renderLog();
+updateDash();renderLog();
 }
 
 function updateDash(){
 totalCalcSpan.textContent=totalCalc;
 unsafeCountSpan.textContent=unsafeCount;
-
 let max="-",val=0;
-for(let k in usage){
-if(usage[k]>val){val=usage[k];max=k;}
-}
+for(let k in usage){if(usage[k]>val){val=usage[k];max=k;}}
 mostUsedSpan.textContent=max;
 }
 
@@ -181,59 +159,49 @@ const {jsPDF}=window.jspdf;
 let doc=new jsPDF();
 
 let drug=drugs[drugSelect.value];
-let w=parseFloat(weight.value);
-let mgv=parseFloat(mg.value);
-let mlv=parseFloat(ml.value);
+let w=weight.value,d=dose.value,mgv=mg.value,mlv=ml.value;
 
-if(!w){
-alert("Isi berat badan dulu!");
-return;
-}
+let nama=document.getElementById("namaPasien").value;
+let rm=document.getElementById("rm").value;
+let ttl=document.getElementById("ttl").value;
+let perawat=document.getElementById("perawat").value;
 
-if(drug.unit.includes("mcg/kg/min") && (!mgv||!mlv)){
-alert("Isi konsentrasi infus!");
-return;
-}
+let y=20;
 
-doc.setFontSize(16);
-doc.text("SMART-HAM",20,20);
+doc.text("SMART-HAM",20,y); y+=10;
+doc.text("RSUP Dr Hasan Sadikin",20,y); y+=10;
 
-doc.setFontSize(11);
-doc.text("High Alert Medication Calculation Sheet",20,28);
-doc.text("RSUP Dr. Hasan Sadikin Bandung",20,34);
+doc.text("Nama: "+nama,20,y); y+=8;
+doc.text("RM: "+rm,20,y); y+=8;
+doc.text("TTL: "+ttl,20,y); y+=8;
+doc.text("Perawat: "+perawat,20,y); y+=10;
 
-let y=45;
-doc.text("Obat: "+drug.name,20,y); y+=10;
-doc.text("Berat Badan: "+w+" kg",20,y); y+=10;
+doc.text("Obat: "+drug.name,20,y); y+=8;
+doc.text("BB: "+w+" kg",20,y); y+=8;
 
-doc.text("=== HASIL UTAMA ===",20,y); y+=10;
-doc.text(result.innerText,20,y); y+=15;
+doc.text("Dosis: "+d+" "+drug.unit,20,y); y+=8;
+doc.text("Pengencer: "+mgv+" mg dalam "+mlv+" ml",20,y); y+=10;
 
-doc.text("=== RANGE DOSIS OTOMATIS ===",20,y); y+=10;
+doc.text("Hasil: "+result.innerText,20,y); y+=10;
+
+doc.text("Range Dosis:",20,y); y+=10;
 
 let step=(drug.max-drug.min)/4;
 
 for(let i=0;i<5;i++){
-let d=(drug.min+(step*i));
+let val=(drug.min+(step*i));
 let res="";
 
 if(drug.unit.includes("mcg/kg/min")){
-let mlh=((w*d)/(mgv*1000/mlv))*60;
+let mlh=((w*val)/(mgv*1000/mlv))*60;
 res=mlh.toFixed(2)+" ml/jam";
-}else if(drug.unit.includes("mcg/kg")){
-res=(w*d).toFixed(2)+" mcg";
-}else if(drug.unit.includes("mg/kg")){
-res=(w*d).toFixed(2)+" mg";
 }else{
-res=(w*d).toFixed(2)+" unit/jam";
+res=(w*val).toFixed(2);
 }
 
-doc.text(d.toFixed(2)+" → "+res,20,y);
+doc.text(val.toFixed(2)+" → "+res,20,y);
 y+=8;
 }
-
-doc.setFontSize(9);
-doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,280);
 
 doc.save("SMART-HAM.pdf");
 }
