@@ -19,7 +19,6 @@ gap:12px;
 }
 
 header img{height:50px;}
-header div{text-align:left;}
 
 .container {max-width:900px;margin:auto;padding:15px;}
 
@@ -91,7 +90,7 @@ margin:auto;
 <body>
 
 <header>
-<img src="https://rshs.go.id/rshs-logo.png">
+<img src="https://rshs.go.id/rshs-logo.png" onerror="this.style.display='none'">
 <div>
 <strong>SMART-HAM</strong><br>
 <small>RSUP Dr. Hasan Sadikin Bandung</small>
@@ -146,15 +145,17 @@ margin:auto;
 </div>
 
 <div id="loadingOverlay">
-  <div class="spinnerBox">
-    <div class="spinner"></div>
-    <p>Generating PDF...</p>
-  </div>
+<div class="spinnerBox">
+<div class="spinner"></div>
+<p>Generating PDF...</p>
+</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
+
+// ===== DATA OBAT =====
 const drugs={
 adrenaline:{name:"Adrenaline",min:0.01,max:0.3,unit:"mcg/kg/min"},
 nicardipine:{name:"Nicardipine",min:0.5,max:5,unit:"mcg/kg/min"},
@@ -178,12 +179,12 @@ drugSelect.appendChild(o);
 
 function updateInfo(){
 let d=drugs[drugSelect.value];
-document.getElementById("safeRange").innerHTML=
-`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
+safeRange.innerHTML=`Dosis Aman: ${d.min} - ${d.max} ${d.unit}`;
 }
 drugSelect.addEventListener("change",updateInfo);
 updateInfo();
 
+// ===== HITUNG =====
 function calculateDose(){
 let w=parseFloat(weight.value);
 let d=parseFloat(dose.value);
@@ -226,6 +227,7 @@ document.getElementById("mostUsed").textContent=max;
 renderLog();
 }
 
+// ===== LOG =====
 function renderLog(){
 let logList=document.getElementById("logList");
 logList.innerHTML="";
@@ -236,6 +238,7 @@ logList.prepend(li);
 });
 }
 
+// ===== EXPORT =====
 function exportCSV(){
 let csv="Data\n";
 logs.forEach(l=>csv+=l+"\n");
@@ -246,20 +249,21 @@ a.download="SMART-HAM.csv";
 a.click();
 }
 
+// ===== FORMAT TANGGAL =====
 function formatDate(dateStr){
 let d=new Date(dateStr);
 return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
+// ===== PDF =====
 function downloadPDF(){
-
-document.getElementById("loadingOverlay").style.display="flex";
 
 if(!result.innerText){
 alert("Hitung dulu!");
-document.getElementById("loadingOverlay").style.display="none";
 return;
 }
+
+document.getElementById("loadingOverlay").style.display="flex";
 
 const {jsPDF}=window.jspdf;
 let doc=new jsPDF();
@@ -300,35 +304,37 @@ doc.text("Sediaan obat: "+mg.value+" mg / "+ml.value+" ml",20,y); y+=8;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
-// 🔥 AUTO DOSIS TABLE
+// ===== TABEL RAPI =====
 doc.setFontSize(11);
-doc.text("Tabel Dosis Otomatis:",20,y); y+=6;
+doc.text("Tabel Dosis Otomatis (Clinical Reference):",20,y); y+=6;
 
-doc.setFontSize(10);
-doc.text("Dosis",20,y);
-doc.text("Hasil",100,y);
-y+=3;
-doc.line(20,y,180,y);
-y+=5;
+doc.setFillColor(15,45,90);
+doc.setTextColor(255,255,255);
+doc.rect(20,y,60,8,'F');
+doc.rect(80,y,80,8,'F');
+doc.text("Dosis",25,y+5);
+doc.text("Hasil (ml/jam)",85,y+5);
+
+y+=10;
+doc.setTextColor(0,0,0);
 
 let step=(drug.max-drug.min)/4;
 
+let w=parseFloat(weight.value);
+let mgv=parseFloat(mg.value);
+let mlv=parseFloat(ml.value);
+
 for(let i=0;i<5;i++){
 let d=(drug.min+(step*i));
-let hasil="";
+let mlh=((w*d)/(mgv*1000/mlv))*60;
 
-if(drug.unit.includes("mcg/kg/min")){
-let mlh=((weight.value*d)/(mg.value*1000/ml.value))*60;
-hasil=mlh.toFixed(2)+" ml/jam";
-}else if(drug.unit.includes("mcg/kg")){
-hasil=(weight.value*d).toFixed(2)+" mcg";
-}else{
-hasil=(weight.value*d).toFixed(2);
-}
+doc.rect(20,y,60,8);
+doc.rect(80,y,80,8);
 
-doc.text(d.toFixed(3),20,y);
-doc.text(hasil,100,y);
-y+=6;
+doc.text(d.toFixed(3),25,y+5);
+doc.text(mlh.toFixed(2)+" ml/jam",85,y+5);
+
+y+=8;
 }
 
 doc.setFontSize(9);
