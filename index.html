@@ -81,7 +81,6 @@ margin:auto;
 }
 
 @keyframes spin{
-0%{transform:rotate(0deg);}
 100%{transform:rotate(360deg);}
 }
 </style>
@@ -304,22 +303,21 @@ doc.text("Sediaan obat: "+mg.value+" mg / "+ml.value+" ml",20,y); y+=8;
 
 doc.text("Hasil: "+result.innerText,20,y); y+=10;
 
-// ===== TABEL RAPI =====
+// ===== TABEL =====
 doc.setFontSize(11);
 doc.text("Tabel Dosis Otomatis:",20,y); y+=6;
 
 doc.setFillColor(15,45,90);
 doc.setTextColor(255,255,255);
-doc.rect(20,y,60,8,'F');
-doc.rect(80,y,80,8,'F');
+doc.rect(20,y,80,8,'F');
+doc.rect(100,y,80,8,'F');
 doc.text("Dosis",25,y+5);
-doc.text("Hasil (ml/jam)",85,y+5);
+doc.text("Hasil",105,y+5);
 
 y+=10;
 doc.setTextColor(0,0,0);
 
 let step=(drug.max-drug.min)/4;
-
 let w=parseFloat(weight.value);
 let mgv=parseFloat(mg.value);
 let mlv=parseFloat(ml.value);
@@ -327,19 +325,36 @@ let mlv=parseFloat(ml.value);
 for(let i=0;i<5;i++){
 let d=(drug.min+(step*i));
 let mlh=((w*d)/(mgv*1000/mlv))*60;
+let mcgPerMin = (w*d);
 
-doc.rect(20,y,60,8);
-doc.rect(80,y,80,8);
+doc.rect(20,y,80,8);
+doc.rect(100,y,80,8);
 
-doc.text(d.toFixed(3),25,y+5);
-doc.text(mlh.toFixed(2)+" ml/jam",85,y+5);
+doc.text(
+parseFloat(d.toFixed(3))+" mcg/kg/min ("+mcgPerMin.toFixed(2)+" mcg/min)",
+25,y+5
+);
+
+doc.text(mlh.toFixed(2)+" ml/jam",105,y+5);
 
 y+=8;
 }
 
+// ===== SPACING AMAN =====
+if(y>260){
+doc.addPage();
+y=20;
+}else{
+y+=10;
+}
+
+// ===== DISCLAIMER =====
 doc.setFontSize(9);
 doc.setTextColor(120);
-doc.text("Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",20,y,{maxWidth:170});
+doc.text(
+"Catatan: Gunakan sebagai alat bantu, verifikasi klinis tetap diperlukan.",
+20,y,{maxWidth:170}
+);
 
 doc.save("SMART-HAM.pdf");
 
